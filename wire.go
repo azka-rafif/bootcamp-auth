@@ -7,7 +7,9 @@ import (
 	"github.com/evermos/boilerplate-go/configs"
 	"github.com/evermos/boilerplate-go/event/producer"
 	"github.com/evermos/boilerplate-go/infras"
+	"github.com/evermos/boilerplate-go/internal/domain/auth"
 	"github.com/evermos/boilerplate-go/internal/domain/foobarbaz"
+
 	"github.com/evermos/boilerplate-go/internal/handlers"
 	"github.com/evermos/boilerplate-go/transport/http"
 	"github.com/evermos/boilerplate-go/transport/http/middleware"
@@ -38,18 +40,27 @@ var domainFooBarBaz = wire.NewSet(
 	wire.Bind(new(producer.Producer), new(*producer.SNSProducer)),
 )
 
+var domainAuth = wire.NewSet(
+	auth.ProvideAuthServiceImpl,
+	wire.Bind(new(auth.AuthService), new(*auth.AuthServiceImpl)),
+	auth.ProvideAuthRepositoryMySQL,
+	wire.Bind(new(auth.AuthRepository), new(*auth.AuthRepositoryMySQL)),
+)
+
 // Wiring for all domains.
 var domains = wire.NewSet(
-	domainFooBarBaz,
+	domainFooBarBaz, domainAuth,
 )
 
 var authMiddleware = wire.NewSet(
 	middleware.ProvideAuthentication,
+	middleware.ProvideJwtAuthentication,
 )
 
 // Wiring for HTTP routing.
 var routing = wire.NewSet(
-	wire.Struct(new(router.DomainHandlers), "FooBarBazHandler"),
+	wire.Struct(new(router.DomainHandlers), "FooBarBazHandler", "AuthHandler"),
+	handlers.ProvideAuthHandler,
 	handlers.ProvideFooBarBazHandler,
 	router.ProvideRouter,
 )
