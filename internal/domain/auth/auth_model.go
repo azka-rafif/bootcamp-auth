@@ -23,6 +23,7 @@ type LoginPayload struct {
 	Password string `json:"password" validate:"required"`
 }
 
+
 type NamePayload struct {
 	Name string `json:"name" validate:"required"`
 }
@@ -76,4 +77,6 @@ func (u *User) ValidatePassword(loginPass string) error {
 
 func (u *User) UpdateName(payload NamePayload) {
 	u.Name = payload.Name
+}
+	return encrypt.ComparePasswords(u.Password, loginPass)
 }
