@@ -9,6 +9,7 @@ type AuthService interface {
 	Register(payload AuthPayload) (res JwtResponseFormat, err error)
 	Login(payload LoginPayload) (res JwtResponseFormat, err error)
 	GetByUserName(userName string) (user User, err error)
+	UpdateName(payload NamePayload, userName string) (user User, err error)
 }
 
 type AuthServiceImpl struct {
@@ -71,6 +72,19 @@ func (s *AuthServiceImpl) createToken(user User) (res JwtResponseFormat, err err
 
 func (s *AuthServiceImpl) GetByUserName(userName string) (user User, err error) {
 	user, err = s.Repo.GetByUserName(userName)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (s *AuthServiceImpl) UpdateName(payload NamePayload, userName string) (user User, err error) {
+	user, err = s.Repo.GetByUserName(userName)
+	if err != nil {
+		return
+	}
+	user.UpdateName(payload)
+	err = s.Repo.Update(user)
 	if err != nil {
 		return
 	}

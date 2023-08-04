@@ -13,6 +13,7 @@ type AuthRepository interface {
 	ExistsByID(userId uuid.UUID) (exists bool, err error)
 	ExistsByUserName(userName string) (exists bool, err error)
 	GetByUserName(userName string) (user User, err error)
+	Update(user User) (err error)
 }
 
 type AuthRepositoryMySQL struct {
@@ -87,6 +88,48 @@ func (r *AuthRepositoryMySQL) txCreate(tx *sqlx.Tx, payload User) (err error) {
 	_, err = stmt.Exec(payload)
 	if err != nil {
 		err = failure.Conflict("create", "user", "already exist")
+		logger.ErrorWithStack(err)
+		return
+	}
+	return
+}
+
+func (r *AuthRepositoryMySQL) Update(user User) (err error) {
+	return r.DB.WithTransaction(func(db *sqlx.Tx, c chan error) {
+		if err := r.txUpdate(db, user); err != nil {
+			c <- err
+			return
+		}
+		c <- nil
+	})
+}
+
+func (r *AuthRepositoryMySQL) txUpdate(tx *sqlx.Tx, payload User) (err error) {
+	query := `UPDATE user
+	SET 
+		id = :id,
+		username = :username,
+		name = :name,
+		password = :password,
+		role =  :role,
+		created_at = :created_at,
+		created_by = :created_by,
+		updated_at = :updated_at,
+		updated_by = :updated_by,
+		deleted_at = :deleted_at,
+		deleted_by = :deleted_by
+	WHERE id = :id`
+	stmt, err := tx.PrepareNamed(query)
+	if err != nil {
+		tx.Rollback()
+		logger.ErrorWithStack(err)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(payload)
+	if err != nil {
+		tx.Rollback()
 		logger.ErrorWithStack(err)
 		return
 	}
