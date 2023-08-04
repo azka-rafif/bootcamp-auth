@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/evermos/boilerplate-go/shared"
 	"github.com/evermos/boilerplate-go/shared/encrypt"
 	"github.com/evermos/boilerplate-go/shared/nuuid"
 	"github.com/evermos/boilerplate-go/shared/roles"
@@ -32,21 +33,38 @@ type JwtResponseFormat struct {
 }
 
 type User struct {
-	UserId     uuid.UUID   `db:"id"`
-	UserName   string      `db:"username"`
-	Name       string      `db:"name"`
-	Password   string      `db:"password"`
-	Role       string      `db:"role"`
-	Created_at time.Time   `db:"created_at"`
-	Updated_at time.Time   `db:"updated_at"`
+	UserId     uuid.UUID   `db:"id" validate:"required"`
+	UserName   string      `db:"username" validate:"required"`
+	Name       string      `db:"name" validate:"required"`
+	Password   string      `db:"password" validate:"required"`
+	Role       string      `db:"role" validate:"required"`
+	Created_at time.Time   `db:"created_at" validate:"required"`
+	Updated_at time.Time   `db:"updated_at" validate:"required"`
 	Deleted_at null.Time   `db:"deleted_at"`
 	Created_by uuid.UUID   `db:"created_by"`
 	Updated_by uuid.UUID   `db:"updated_by"`
 	Deleted_by nuuid.NUUID `db:"deleted_by"`
 }
 
+type UserResponseFormat struct {
+	UserId     uuid.UUID   `json:"id" validate:"required"`
+	UserName   string      `json:"userName" validate:"required"`
+	Name       string      `json:"name" validate:"required"`
+	Password   string      `json:"password" validate:"required"`
+	Role       string      `json:"role" validate:"required"`
+	Created_at time.Time   `json:"createdAt" validate:"required"`
+	Updated_at time.Time   `json:"updatedAt" validate:"required"`
+	Deleted_at null.Time   `json:"deletedAt"`
+	Created_by uuid.UUID   `json:"createdBy"`
+	Updated_by uuid.UUID   `json:"updatedBy"`
+	Deleted_by nuuid.NUUID `json:"deletedBy"`
+}
+
 func (u User) NewFromPayload(payload AuthPayload) (User, error) {
-	userId, _ := uuid.NewV4()
+	userId, err := uuid.NewV4()
+	if err != nil {
+		return User{}, err
+	}
 	hashedPass, err := encrypt.HashPassword(payload.Password)
 	if err != nil {
 		return User{}, err
@@ -63,10 +81,11 @@ func (u User) NewFromPayload(payload AuthPayload) (User, error) {
 		Updated_at: time.Now().UTC(),
 		Updated_by: userId,
 	}
-	return newUser, nil
+	err = newUser.Validate()
+	return newUser, err
 }
 
-func (j *JwtResponseFormat) MarshalJson() ([]byte, error) {
+func (j *JwtResponseFormat) MarshalJSON() ([]byte, error) {
 	return json.Marshal(j)
 }
 
@@ -76,4 +95,17 @@ func (u *User) ValidatePassword(loginPass string) error {
 
 func (u *User) UpdateName(payload NamePayload) {
 	u.Name = payload.Name
+}
+
+func (u User) ToResponseFormat() UserResponseFormat {
+	return UserResponseFormat(u)
+}
+
+func (u User) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.ToResponseFormat())
+}
+
+func (u *User) Validate() (err error) {
+	validator := shared.GetValidator()
+	return validator.Struct(u)
 }
