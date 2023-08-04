@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/evermos/boilerplate-go/internal/domain/auth"
+	"github.com/evermos/boilerplate-go/shared"
 	"github.com/evermos/boilerplate-go/shared/failure"
 	"github.com/evermos/boilerplate-go/shared/jwt"
 	"github.com/evermos/boilerplate-go/transport/http/middleware"
@@ -47,6 +48,11 @@ func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		response.WithError(w, failure.BadRequest(err))
 		return
 	}
+	err = shared.GetValidator().Struct(payload)
+	if err != nil {
+		response.WithError(w, failure.BadRequest(err))
+		return
+	}
 
 	res, err := h.Service.Register(payload)
 	if err != nil {
@@ -64,8 +70,14 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		response.WithError(w, failure.BadRequest(err))
 		return
 	}
-	res, err := h.Service.Login(payload)
 
+	err = shared.GetValidator().Struct(payload)
+	if err != nil {
+		response.WithError(w, failure.BadRequest(err))
+		return
+	}
+
+	res, err := h.Service.Login(payload)
 	if err != nil {
 		response.WithError(w, failure.InternalError(err))
 		return
@@ -103,6 +115,11 @@ func (h *AuthHandler) HandleUpdateProfile(w http.ResponseWriter, r *http.Request
 	decoder := json.NewDecoder(r.Body)
 	var payload auth.NamePayload
 	err := decoder.Decode(&payload)
+	if err != nil {
+		response.WithError(w, failure.BadRequest(err))
+		return
+	}
+	err = shared.GetValidator().Struct(payload)
 	if err != nil {
 		response.WithError(w, failure.BadRequest(err))
 		return
