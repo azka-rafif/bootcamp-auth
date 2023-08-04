@@ -23,6 +23,11 @@ type LoginPayload struct {
 	Password string `json:"password" validate:"required"`
 }
 
+
+type NamePayload struct {
+	Name string `json:"name" validate:"required"`
+}
+
 type JwtResponseFormat struct {
 	AccessToken string `json:"access_token"`
 }
@@ -67,6 +72,11 @@ func (j *JwtResponseFormat) MarshalJson() ([]byte, error) {
 }
 
 func (u *User) ValidatePassword(loginPass string) error {
-	println(u.Password)
+	return encrypt.ComparePasswords(u.Password, loginPass)
+}
+
+func (u *User) UpdateName(payload NamePayload) {
+	u.Name = payload.Name
+}
 	return encrypt.ComparePasswords(u.Password, loginPass)
 }

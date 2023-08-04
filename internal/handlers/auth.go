@@ -34,7 +34,8 @@ func (h *AuthHandler) Router(r chi.Router) {
 	})
 	r.Route("/profile", func(r chi.Router) {
 		r.Use(h.JwtAuth.Validate)
-		r.Get("/", h.HandleProfile)
+		r.Get("/", h.HandleGetProfile)
+		r.Put("/", h.HandleUpdateProfile)
 	})
 }
 
@@ -83,7 +84,7 @@ func (h *AuthHandler) HandleValidate(w http.ResponseWriter, r *http.Request) {
 	response.WithJSON(w, http.StatusOK, claims)
 }
 
-func (h *AuthHandler) HandleProfile(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) HandleGetProfile(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.ClaimsKey("claims")).(*jwt.Claims)
 	if !ok {
 		response.WithMessage(w, http.StatusUnauthorized, "Unauthorized")
@@ -93,6 +94,27 @@ func (h *AuthHandler) HandleProfile(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		response.WithError(w, err)
+		return
+	}
+	response.WithJSON(w, http.StatusOK, res)
+}
+
+func (h *AuthHandler) HandleUpdateProfile(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var payload auth.NamePayload
+	err := decoder.Decode(&payload)
+	if err != nil {
+		response.WithError(w, failure.BadRequest(err))
+		return
+	}
+	claims, ok := r.Context().Value(middleware.ClaimsKey("claims")).(*jwt.Claims)
+	if !ok {
+		response.WithMessage(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	res, err := h.Service.UpdateName(payload, claims.UserName)
+	if err != nil {
+		response.WithError(w, failure.BadRequest(err))
 		return
 	}
 	response.WithJSON(w, http.StatusOK, res)
