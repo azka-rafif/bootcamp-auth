@@ -7,6 +7,7 @@ import (
 	"github.com/evermos/boilerplate-go/configs"
 	"github.com/evermos/boilerplate-go/infras"
 	"github.com/evermos/boilerplate-go/internal/domain/auth"
+	"github.com/evermos/boilerplate-go/shared/failure"
 	"github.com/evermos/boilerplate-go/shared/jwt"
 	"github.com/evermos/boilerplate-go/transport/http/response"
 )
@@ -55,7 +56,7 @@ func (a *JwtAuthentication) Validate(next http.Handler) http.Handler {
 		}
 		claims, err := a.jwt.ValidateJwt(token)
 		if err != nil {
-			response.WithError(w, err)
+			response.WithError(w, failure.Unauthorized(err.Error()))
 			return
 		}
 		ctx := context.WithValue(r.Context(), ClaimsKey("claims"), claims)
